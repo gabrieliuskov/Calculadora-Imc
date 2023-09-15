@@ -24,10 +24,9 @@ class _MainPageState extends State<MainPage> {
   Pessoa lastImc = Pessoa();
   void loadImc() async {
     _imcs = await imcRepository.listaImc();
-    if (_imcs.isNotEmpty){
+    if (_imcs.isNotEmpty) {
       lastImc = _imcs[_imcs.length - 1];
     }
-    
 
     setState(() {});
   }
@@ -37,7 +36,6 @@ class _MainPageState extends State<MainPage> {
     super.initState();
     loadImc();
   }
-  
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +56,11 @@ class _MainPageState extends State<MainPage> {
                   style: const ButtonStyle(
                       backgroundColor: MaterialStatePropertyAll(Colors.indigo)),
                   onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (BuildContext bc) => RegistroImcPage(imcRepository: imcRepository)));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (BuildContext bc) =>
+                                RegistroImcPage(imcRepository: imcRepository)));
                   },
                   child: const Text("Registro de IMC",
                       style: TextStyle(
@@ -66,7 +68,14 @@ class _MainPageState extends State<MainPage> {
                           fontSize: 18,
                           color: Colors.white))),
               const Divider(),
-              const Center(child: Text("Calculo de IMC", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo),)),
+              const Center(
+                  child: Text(
+                "Calculo de IMC",
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.indigo),
+              )),
               const TextLabel(texto: "Insira seu peso (kg):"),
               TextField(
                 controller: pesoController,
@@ -100,17 +109,17 @@ class _MainPageState extends State<MainPage> {
                   style: const ButtonStyle(
                       backgroundColor: MaterialStatePropertyAll(Colors.indigo)),
                   onPressed: () {
-                    if (pessoa.getPeso == 0 || pessoa.getPeso == null) {
+                    if (pessoa.getPeso == 0 || pessoa.getPeso == null || pesoController.text == "") {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                           content:
-                              Text("Peso inválido! Peso = ${pessoa.getPeso}")));
+                              Text("Peso inválido! Peso = ${pesoController.text}")));
                       return;
                     }
 
-                    if (pessoa.getAltura == 0 || pessoa.getAltura == null) {
+                    if (pessoa.getAltura == 0 || pessoa.getAltura == null || alturaController.text == "") {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                           content: Text(
-                              "Altura inválida! Altura = ${pessoa.getAltura}")));
+                              "Altura inválida! Altura = ${alturaController.text}")));
                       return;
                     }
                     pesoController.text = "";
@@ -128,15 +137,21 @@ class _MainPageState extends State<MainPage> {
                         fontSize: 18,
                         color: Colors.white),
                   )),
-                  Container(
-                    child: lastImc.getClasse == "" ? const Center(
-                      child: SizedBox(),
-                    ) : Card(
-                      child: Text(
-                              "IMC: ${lastImc.getImc}\nAltura: ${lastImc.getAltura}\nPeso: ${lastImc.getPeso}\nClassificação: ${lastImc.getClasse}"),
+              Container(
+                child: lastImc.getClasse == ""
+                    ? const Center(
+                        child: SizedBox(),
+                      )
+                    : Card(
+                      shape:RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      elevation: 8,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                        child: Text(
+                            "IMC: ${lastImc.getImc}\nAltura: ${lastImc.getAltura}\nPeso: ${lastImc.getPeso}\nClassificação: ${lastImc.getClasse}"),
+                      ),
                     ),
-                  )
-              
+              )
             ],
           ),
         ),
