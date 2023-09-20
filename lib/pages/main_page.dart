@@ -1,7 +1,9 @@
-import 'package:calculadora_imc/models/classifica_imc.dart';
-import 'package:calculadora_imc/models/pessoa.dart';
-import 'package:calculadora_imc/pages/registro_page.dart';
-import 'package:calculadora_imc/repositories/imc.dart';
+import 'package:calculadora_imc/models/configuracoes_model.dart';
+import 'package:calculadora_imc/models/pessoa_model.dart';
+import 'package:calculadora_imc/repositories/configuracoes_repository.dart';
+import 'package:calculadora_imc/repositories/imc_repository.dart';
+import 'package:calculadora_imc/utils/classifica_imc.dart';
+import 'package:calculadora_imc/shared/drawer.dart';
 import 'package:calculadora_imc/shared/text_label.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,33 +16,43 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  var pessoa = Pessoa();
-  var imcRepository = ImcRepository();
+  var pessoa = PessoaModel(0,0, 0, 0, "");
+  late ImcRepository imcRepository;
+  late ConfiguracoesRepository configuracoesRepository;
+  ConfiguracoesModel configuracoesModel = ConfiguracoesModel.vazio();
 
   var pesoController = TextEditingController();
   var alturaController = TextEditingController();
 
-  var _imcs = <Pessoa>[];
-  Pessoa lastImc = Pessoa();
-  void loadImc() async {
-    _imcs = await imcRepository.listaImc();
-    if (_imcs.isNotEmpty) {
-      lastImc = _imcs[_imcs.length - 1];
-    }
+  void carregar() async {
+    imcRepository = await ImcRepository.carregar();
+    configuracoesRepository = await ConfiguracoesRepository.carregar();
+    configuracoesModel = configuracoesRepository.obterDados();
 
+    if (configuracoesModel.peso == 0) {
+      pesoController.text = "";
+    } else {
+      pesoController.text = configuracoesModel.peso.toString();
+    }
+    if (configuracoesModel.altura == 0) {
+      alturaController.text = "";
+    } else {
+      alturaController.text = configuracoesModel.altura.toString();
+    }
     setState(() {});
   }
 
   @override
   void initState() {
+    carregar();
     super.initState();
-    loadImc();
   }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
+        drawer: const CustomDrawer(),
         appBar: AppBar(
             elevation: 5,
             title: const Text(
@@ -52,22 +64,6 @@ class _MainPageState extends State<MainPage> {
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           child: ListView(
             children: [
-              TextButton(
-                  style: const ButtonStyle(
-                      backgroundColor: MaterialStatePropertyAll(Colors.indigo)),
-                  onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (BuildContext bc) =>
-                                RegistroImcPage(imcRepository: imcRepository)));
-                  },
-                  child: const Text("Registro de IMC",
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Colors.white))),
-              const Divider(),
               const Center(
                   child: Text(
                 "Calculo de IMC",
@@ -81,26 +77,12 @@ class _MainPageState extends State<MainPage> {
                 controller: pesoController,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                onChanged: (value) {
-                  if (value == "") {
-                    pessoa.setPeso = 0;
-                  } else {
-                    pessoa.setPeso = int.parse(value);
-                  }
-                },
               ),
               const TextLabel(texto: "Insira sua altura (cm):"),
               TextField(
                 controller: alturaController,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                onChanged: (value) {
-                  if (value == "") {
-                    pessoa.setAltura = 0;
-                  } else {
-                    pessoa.setAltura = int.parse(value);
-                  }
-                },
               ),
               const SizedBox(
                 height: 10,
@@ -109,26 +91,28 @@ class _MainPageState extends State<MainPage> {
                   style: const ButtonStyle(
                       backgroundColor: MaterialStatePropertyAll(Colors.indigo)),
                   onPressed: () {
-                    if (pessoa.getPeso == 0 || pessoa.getPeso == null || pesoController.text == "") {
+                    if (pesoController.text == "" || pesoController.text == "0") {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content:
-                              Text("Peso inválido! Peso = ${pesoController.text}")));
+                          content: Text(
+                              "Peso inválido! Peso = ${pesoController.text}")));
                       return;
                     }
 
-                    if (pessoa.getAltura == 0 || pessoa.getAltura == null || alturaController.text == "") {
+                    if (alturaController.text == "" || alturaController.text == "0") {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                           content: Text(
                               "Altura inválida! Altura = ${alturaController.text}")));
                       return;
                     }
-                    pesoController.text = "";
-                    alturaController.text = "";
+                    pessoa.setPeso = int.parse(pesoController.text);
+                    pessoa.setAltura = int.parse(alturaController.text);
                     pessoa.calculaImc();
                     pessoa.classificacao = ClassificaImc.classificaImc(
                         double.parse(pessoa.getImc));
-                    imcRepository.adicionaImc(pessoa);
-                    loadImc();
+
+                    imcRepository.salvar(pessoa);
+
+                    setState(() {});
                   },
                   child: const Text(
                     "Calcular",
@@ -138,19 +122,21 @@ class _MainPageState extends State<MainPage> {
                         color: Colors.white),
                   )),
               Container(
-                child: lastImc.getClasse == ""
+                child: pessoa.getClasse == ""
                     ? const Center(
                         child: SizedBox(),
                       )
                     : Card(
-                      shape:RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      elevation: 8,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                        child: Text(
-                            "IMC: ${lastImc.getImc}\nAltura: ${lastImc.getAltura}\nPeso: ${lastImc.getPeso}\nClassificação: ${lastImc.getClasse}"),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15)),
+                        elevation: 8,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 8, horizontal: 16),
+                          child: Text(
+                              "IMC: ${pessoa.getImc}\nAltura: ${pessoa.getAltura}\nPeso: ${pessoa.getPeso}\nClassificação: ${pessoa.getClasse}"),
+                        ),
                       ),
-                    ),
               )
             ],
           ),

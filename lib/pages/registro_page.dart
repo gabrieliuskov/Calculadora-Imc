@@ -1,19 +1,20 @@
-import 'package:calculadora_imc/models/pessoa.dart';
-import 'package:calculadora_imc/repositories/imc.dart';
+import 'package:calculadora_imc/models/pessoa_model.dart';
+import 'package:calculadora_imc/repositories/imc_repository.dart';
 import 'package:flutter/material.dart';
 
 class RegistroImcPage extends StatefulWidget {
-  final ImcRepository imcRepository;
-  const RegistroImcPage({super.key, required this.imcRepository});
+  const RegistroImcPage({super.key});
 
   @override
   State<RegistroImcPage> createState() => _RegistroImcPageState();
 }
 
 class _RegistroImcPageState extends State<RegistroImcPage> {
-  var _imcs = <Pessoa>[];
+  late ImcRepository imcRepository;
+  var _imcs = <PessoaModel>[];
   void loadImc() async {
-    _imcs = await widget.imcRepository.listaImc();
+    imcRepository = await ImcRepository.carregar();
+    _imcs = imcRepository.obterDados();
     setState(() {});
   }
 
@@ -31,6 +32,7 @@ class _RegistroImcPageState extends State<RegistroImcPage> {
                   itemCount: _imcs.length,
                   itemBuilder: (BuildContext bc, int index) {
                     var imc = _imcs[index];
+                    print(imc);
                     return Card(
                       shadowColor: Colors.indigo,
                       elevation: 8,
